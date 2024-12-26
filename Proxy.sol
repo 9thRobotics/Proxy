@@ -5,6 +5,8 @@ contract Proxy {
     address public implementation;
     address public admin;
 
+    event ImplementationChanged(address indexed previousImplementation, address indexed newImplementation);
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not authorized");
         _;
@@ -16,7 +18,12 @@ contract Proxy {
 
     function setImplementation(address newImplementation) external onlyAdmin {
         require(newImplementation != address(0), "Invalid implementation address");
+        require(isContract(newImplementation), "Implementation address must be a contract");
+        
+        address previousImplementation = implementation;
         implementation = newImplementation; // Set the new implementation address
+        
+        emit ImplementationChanged(previousImplementation, newImplementation);
     }
 
     fallback() external payable {
@@ -34,5 +41,11 @@ contract Proxy {
 
     receive() external payable {
         // Allow the contract to accept Ether
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly { size := extcodesize(account) }
+        return size > 0;
     }
 }
